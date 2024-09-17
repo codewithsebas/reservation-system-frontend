@@ -22,7 +22,6 @@ interface Reservation {
     serviceTitle: string;
 }
 
-
 const Reservations: React.FC = () => {
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [form, setForm] = useState({
@@ -34,46 +33,46 @@ const Reservations: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
-    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Nuevo estado para modal de confirmación
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Confirm delete modal state
     const [reservationToDelete, setReservationToDelete] = useState<number | null>(null);
     const [isModalOpenView, setIsModalOpenView] = useState(false);
     const [viewReservation, setViewReservation] = useState<Reservation | null>(null);
+    const [user, setUser] = useState<string | null>(null);
+    const [userIdState, setUserIdState] = useState<string | null>(null);
     const router = useRouter();
-    const [user, setUser] = useState<string | null>("")
-    const [userIdState] = useState<number | string | null>(localStorage.getItem("userId"));
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        setUser(localStorage.getItem("username"))
-
-
-        if (!token) {
-            router.push("/login");
-            return;
-        }
-
         if (typeof window !== "undefined") {
+            const token = localStorage.getItem("token");
+            setUser(localStorage.getItem("username"));
             const userId = localStorage.getItem("userId") || "";
+            setUserIdState(userId);
+
+            if (!token) {
+                router.push("/login");
+                return;
+            }
+
             setForm((prevForm) => ({
                 ...prevForm,
                 userId
             }));
+
+            const fetchReservations = async () => {
+                try {
+                    const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/reservations/user/${userId}`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    setReservations(response.data);
+                } catch (error) {
+                    setError("Error fetching reservations");
+                    console.error("Error fetching reservations:", error);
+                }
+            };
+
+            fetchReservations();
         }
-
-        const fetchReservations = async () => {
-            try {
-                const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/reservations/user/${userIdState}`, {
-                    headers: { Authorization: `${token}` },
-                });
-                setReservations(response.data);
-            } catch (error) {
-                setError("Error fetching reservations");
-                console.error("Error fetching reservations:", error);
-            }
-        };
-
-        fetchReservations();
-    }, [router, userIdState]);
+    }, [router]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -96,11 +95,11 @@ const Reservations: React.FC = () => {
             const token = localStorage.getItem("token");
             if (token) {
                 await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/reservations`, form, {
-                    headers: { Authorization: `${token}` },
+                    headers: { Authorization: `Bearer ${token}` },
                 });
-                setForm({ userId: localStorage.getItem("userId") || "", reservationDate: "", reservationDetails: "", serviceTitle: "" });
+                setForm({ userId: userIdState || "", reservationDate: "", reservationDetails: "", serviceTitle: "" });
                 const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/reservations/user/${userIdState}`, {
-                    headers: { Authorization: `${token}` },
+                    headers: { Authorization: `Bearer ${token}` },
                 });
                 setReservations(response.data);
                 setIsModalOpen(false);
@@ -115,7 +114,7 @@ const Reservations: React.FC = () => {
     const handleEditReservation = (reservation: Reservation) => {
         setEditingReservation(reservation);
         setForm({
-            userId: localStorage.getItem("userId") || "",
+            userId: userIdState || "",
             reservationDate: reservation.reservationDate
                 ? dayjs(reservation.reservationDate).format("YYYY-MM-DD")
                 : "",
@@ -125,7 +124,6 @@ const Reservations: React.FC = () => {
         setIsModalOpen(true);
     };
 
-
     const handleUpdateReservation = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         try {
@@ -134,17 +132,17 @@ const Reservations: React.FC = () => {
                 await axios.put(
                     `${process.env.NEXT_PUBLIC_API_URL}/reservations/${editingReservation.id}`,
                     {
-                        userId: localStorage.getItem("userId") || "",
+                        userId: userIdState || "",
                         reservationDate: dayjs(form.reservationDate).toISOString(),
                         reservationDetails: form.reservationDetails,
                         serviceTitle: form.serviceTitle
                     },
                     {
-                        headers: { Authorization: `${token}` },
+                        headers: { Authorization: `Bearer ${token}` },
                     }
                 );
                 const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/reservations/user/${userIdState}`, {
-                    headers: { Authorization: `${token}` },
+                    headers: { Authorization: `Bearer ${token}` },
                 });
                 setReservations(response.data);
                 setEditingReservation(null);
@@ -165,10 +163,10 @@ const Reservations: React.FC = () => {
             const token = localStorage.getItem("token");
             if (token) {
                 await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/reservations/${reservationToDelete}`, {
-                    headers: { Authorization: `${token}` },
+                    headers: { Authorization: `Bearer ${token}` },
                 });
                 const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/reservations/user/${userIdState}`, {
-                    headers: { Authorization: `${token}` },
+                    headers: { Authorization: `Bearer ${token}` },
                 });
                 setReservations(response.data);
                 setReservationToDelete(null);
@@ -192,7 +190,6 @@ const Reservations: React.FC = () => {
         router.push("/login");
     };
 
-
     const handleViewReservation = (reservation: Reservation) => {
         setViewReservation(reservation);
         setIsModalOpenView(true);
@@ -200,37 +197,31 @@ const Reservations: React.FC = () => {
 
     return (
         <div className="flex justify-center items-start min-h-screen p-5">
-            <main className="flex flex-col gap-3 row-start-2 items-center max-w-4xl sm:items-start w-full ">
+            <main className="flex flex-col gap-3 row-start-2 items-center max-w-4xl sm:items-start w-full">
                 <div className="flex gap-5 items-start w-full justify-between border-b pb-3 flex-col md:flex-row md:items-center">
-                    <h2 className="font-medium text-4xl flex flex-col  w-full">
+                    <h2 className="font-medium text-4xl flex flex-col w-full">
                         <span className="font-medium text-black text-2xl">Reservation System</span>
                         <code className="font-extralight text-base">{user}</code>
                     </h2>
 
-
                     <div className="flex gap-2 items-center">
-                        <Link href='/' className='rounded-md text-center flex gap-3 px-4 justify-center text-sm w-full py-2.5 bg-slate-50  border text-black duration-200 hover:bg-slate-100'>
+                        <Link href='/' className='rounded-md text-center flex gap-3 px-4 justify-center text-sm w-full py-2.5 bg-slate-50 border text-black duration-200 hover:bg-slate-100'>
                             <House size={18} /></Link>
-                        <button className='rounded-md text-center text-sm w-full py-2.5 px-4 text-nowrap bg-black text-white duration-200 hover:bg-black/90' onClick={() => { setIsModalOpen(true); setForm({ userId: localStorage.getItem("userId") || "", reservationDate: "", reservationDetails: "", serviceTitle: "" }); }}>
+                        <button className='rounded-md text-center text-sm w-full py-2.5 px-4 text-nowrap bg-black text-white duration-200 hover:bg-black/90' onClick={() => { setIsModalOpen(true); setForm({ userId: userIdState || "", reservationDate: "", reservationDetails: "", serviceTitle: "" }); }}>
                             Crear Reserva
                         </button>
-                        <button className='rounded-md text-center flex gap-3 justify-center text-sm w-full py-2.5 px-4 text-nowrap bg-slate-50  border text-black duration-200 hover:bg-slate-100' onClick={handleLogout}>
+                        <button className='rounded-md text-center flex gap-3 justify-center text-sm w-full py-2.5 px-4 text-nowrap bg-slate-50 border text-black duration-200 hover:bg-slate-100' onClick={handleLogout}>
                             Cerrar sesión
                         </button>
                     </div>
                 </div>
-
-
-
-
-
 
                 <Modal
                     title={editingReservation ? "Editar Reserva" : "Nueva Reserva"}
                     open={isModalOpen}
                     onCancel={() => {
                         setIsModalOpen(false);
-                        setEditingReservation(null); // Limpiar estado de edición
+                        setEditingReservation(null); // Clear editing state
                     }}
                     footer={null}
                     width={400}
@@ -244,114 +235,114 @@ const Reservations: React.FC = () => {
                             placeholder="Service of reservation"
                             value={form.serviceTitle}
                             onChange={handleChange}
-                            required
                         />
-
                         <Input
                             name="reservationDetails"
                             placeholder="Reservation Details"
                             value={form.reservationDetails}
                             onChange={handleChange}
-                            required
                         />
-
                         <DatePicker
-                            onChange={handleDateChange}
+                            placeholder="Reservation Date"
                             value={form.reservationDate ? dayjs(form.reservationDate) : null}
-                            format="YYYY-MM-DD"
-                            placeholder="Selecciona la fecha"
+                            onChange={handleDateChange}
                             style={{ width: "100%" }}
                         />
-                        <button className='rounded-md text-center text-sm w-full py-2 bg-black text-white duration-200 hover:bg-black/90' type="submit">
-                            {editingReservation ? "Actualizar" : "Crear Reserva"}
+                        <button
+                            type="submit"
+                            className="py-2.5 text-center text-sm text-white rounded-md bg-black mt-2 hover:bg-black/90"
+                        >
+                            {editingReservation ? "Actualizar Reserva" : "Crear Reserva"}
                         </button>
-                        {error && <p className="text-red-500">{error}</p>}
                     </form>
                 </Modal>
 
-
                 <Modal
-                    title="Reserva"
+                    title="Ver Reserva"
                     open={isModalOpenView}
-                    onCancel={() => {
-                        setIsModalOpenView(false);
-                    }}
+                    onCancel={() => setIsModalOpenView(false)}
                     footer={null}
                     width={400}
                 >
-                    <div className="flex flex-col gap-2 overflow-hidden">
-                        <p className="text-gray-500 text-sm mt-2">
-                            {viewReservation?.reservationDate}
-                        </p>
-                        <h3 className="font-medium text-ellipsis overflow-hidden w-full">{viewReservation?.serviceTitle}</h3>
-                        <p className="text-gray-700 text-ellipsis overflow-hidden w-full">
-                            {viewReservation?.reservationDetails}
-                        </p>
+                    {viewReservation && (
+                        <div>
+                            <p><strong>Service Title:</strong> {viewReservation.serviceTitle}</p>
+                            <p><strong>Details:</strong> {viewReservation.reservationDetails}</p>
+                            <p><strong>Date:</strong> {dayjs(viewReservation.reservationDate).format("YYYY-MM-DD")}</p>
+                        </div>
+                    )}
+                </Modal>
+
+                <Modal
+                    title="Confirmar Eliminación"
+                    open={isConfirmModalOpen}
+                    onCancel={() => setIsConfirmModalOpen(false)}
+                    footer={null}
+                    width={400}
+                >
+                    <p>¿Está seguro de que desea eliminar esta reserva?</p>
+                    <div className="flex gap-3 justify-end mt-3">
+                        <button
+                            onClick={() => setIsConfirmModalOpen(false)}
+                            className="py-2 px-4 rounded-md text-sm text-white bg-gray-500 hover:bg-gray-600"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={handleDeleteReservation}
+                            className="py-2 px-4 rounded-md text-sm text-white bg-red-500 hover:bg-red-600"
+                        >
+                            Eliminar
+                        </button>
                     </div>
                 </Modal>
 
-                <div className="w-full">
-                    <h2 className="font-medium text-xl mb-3">Tus reservaciones</h2>
-                    <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {reservations.length > 0 ? (
-                            reservations.map((reservation) => (
-                                <div key={reservation.id} className="bg-white border border-black/20 rounded-lg p-4  flex justify-between items-start gap-5 duration-200 hover:shadow">
-                                    <div className="flex flex-col overflow-hidden max-h-20">
-                                        <p className="text-gray-500 text-sm mb-2">
-                                            {reservation.reservationDate}
-                                        </p>
-                                        <h3 className="font-medium text-ellipsis overflow-hidden w-full truncate">{reservation.serviceTitle}</h3>
-                                        <p className="text-gray-700 text-ellipsis overflow-hidden truncate w-full">
-                                            {reservation.reservationDetails}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex flex-col gap-3 items-center justify-center">
-
-                                        <Tooltip placement="top" title="Ver">
-                                            <button
-                                                onClick={() => handleViewReservation(reservation)}>
-                                                <LucideEye className="w-5 h-5" />
-                                            </button>
-                                        </Tooltip>
-
-                                        <Tooltip placement="top" title="Editar">
-                                            <button
-                                                onClick={() => handleEditReservation(reservation)}
-
-                                            >
-                                                <LucideEdit className="w-5 h-5" />
-                                            </button>
-                                        </Tooltip>
-
-                                        <Tooltip placement="top" title="Cancelar">
-                                            <button onClick={() => showConfirmDeleteModal(reservation.id)}>
-                                                <LucideX className="w-5 h-5" />
-                                            </button>
-                                        </Tooltip>
-
-                                    </div>
+                <div className="w-full flex flex-col gap-3">
+                    {reservations.length > 0 ? (
+                        reservations.map((reservation) => (
+                            <div key={reservation.id} className="bg-white border border-black/20 rounded-lg p-4  flex justify-between items-start gap-5 duration-200 hover:shadow">
+                                <div className="flex flex-col overflow-hidden max-h-20">
+                                    <p className="text-gray-500 text-sm mb-2">
+                                        {reservation.reservationDate}
+                                    </p>
+                                    <h3 className="font-medium text-ellipsis overflow-hidden w-full truncate">{reservation.serviceTitle}</h3>
+                                    <p className="text-gray-700 text-ellipsis overflow-hidden truncate w-full">
+                                        {reservation.reservationDetails}
+                                    </p>
                                 </div>
-                            ))
-                        ) : (
-                            <p>Tienes 0 reservaciones</p>
-                        )}
-                    </ul>
+
+                                <div className="flex flex-col gap-3 items-center justify-center">
+
+                                    <Tooltip placement="top" title="Ver">
+                                        <button
+                                            onClick={() => handleViewReservation(reservation)}>
+                                            <LucideEye className="w-5 h-5" />
+                                        </button>
+                                    </Tooltip>
+
+                                    <Tooltip placement="top" title="Editar">
+                                        <button
+                                            onClick={() => handleEditReservation(reservation)}
+
+                                        >
+                                            <LucideEdit className="w-5 h-5" />
+                                        </button>
+                                    </Tooltip>
+
+                                    <Tooltip placement="top" title="Cancelar">
+                                        <button onClick={() => showConfirmDeleteModal(reservation.id)}>
+                                            <LucideX className="w-5 h-5" />
+                                        </button>
+                                    </Tooltip>
+
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <p>Tienes 0 reservaciones</p>
+                    )}
                 </div>
             </main>
-
-            <Modal
-                title="Confirmar Cancelación"
-                open={isConfirmModalOpen}
-                onCancel={() => setIsConfirmModalOpen(false)}
-                onOk={handleDeleteReservation}
-                okText="Confirmar"
-                cancelText="Cancelar"
-                okButtonProps={{ className: 'custom-confirm-button' }}
-            >
-                <p>¿Estás seguro que deseas cancelar esta reserva?</p>
-            </Modal>
-
         </div>
     );
 };
