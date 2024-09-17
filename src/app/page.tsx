@@ -66,11 +66,11 @@ export default function Home() {
           <div className="flex flex-col gap-3">
             <h2 className="font-medium text-4xl">Reservation System</h2>
             <ol className="list-inside flex flex-col gap-1 list-decimal text-sm text-start sm:text-left font-[family-name:var(--font-geist-mono)]">
-              <li>Repository: GitHub - <Link className="hover:underline" target="_blank" href="https://github.com/codewithsebas/reservation-system-backend">
+              <li>Repository: GitHub - <Link className="hover:underline" target="_blank" href="https://github.com/codewithsebas/reservation-system-frontend">
                 Reservation System Frontend.</Link></li>
               <li>Repository: GitHub - <Link className="hover:underline" target="_blank" href="https://github.com/codewithsebas/reservation-system-backend">
                 Reservation System Backend.</Link></li>
-              <li>Documentation in POSTMAN - <Link className="hover:underline" target="_blank" href="https://github.com/codewithsebas/reservation-system-backend">
+              <li>Documentation in POSTMAN - <Link className="hover:underline" target="_blank" href="https://www.postman.com/satellite-geoscientist-17392290/workspace/reservation-system-api/collection/33340165-8a12f120-9bfc-4f03-a51c-2b81e540494f?action=share&creator=33340165">
                 Reservation System Documentation.</Link></li>
             </ol>
           </div>
