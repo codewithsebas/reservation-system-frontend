@@ -2,26 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+.custom-confirm-button {
+    background-color: black;
+    color: white;
+    border-color: black; /* Cambia el color del borde si es necesario */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+.custom-confirm-button:hover {
+    background-color: rgb(32, 32, 32); /* Color del botón cuando se pasa el ratón */
+    border-color: white; /* Color del borde cuando se pasa el ratón */
 }
